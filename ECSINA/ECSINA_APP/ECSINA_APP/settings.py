@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'Products.apps.ProductsConfig',
     'system_settings.apps.SystemSettingsConfig',
     'permissions.apps.PermissionsConfig',
+    'jobs.apps.jobconfig',
     'rest_framework',
     'rest_framework.authtoken',
 
