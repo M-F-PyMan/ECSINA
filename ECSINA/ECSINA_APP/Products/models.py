@@ -18,3 +18,18 @@ class Product(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Image(models.Model):
+    path = models.CharField(max_length=255)
+    imageable_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    imageable_id = models.PositiveIntegerField()
+    imageable = GenericForeignKey('imageable_type', 'imageable_id')
+
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'images'
+
+    def __str__(self):
+        return self.path
