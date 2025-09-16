@@ -41,6 +41,8 @@ INSTALLED_APPS = [
     #our_APP
     'Accounts.apps.AccountsConfig',
     'Products.apps.ProductsConfig',
+    'system_settings.apps.SystemSettingsConfig',
+    'permissions.apps.PermissionsConfig',
     'rest_framework',
     'rest_framework.authtoken',
 
@@ -120,12 +122,13 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Tehran'
 
 USE_I18N = True
 
 USE_TZ = True
 
+HASHID_FIELD_SALT = ')h0p!5&33xmgqas+#w^!xhl4bm#(^qq2$oc5+!6x@0g2y-fyq*'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
