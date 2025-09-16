@@ -43,18 +43,19 @@ INSTALLED_APPS = [
     'Products.apps.ProductsConfig',
     'system_settings.apps.SystemSettingsConfig',
     'permissions.apps.PermissionsConfig',
-    'jobs.apps.jobconfig',
+    'jobs.apps.JobConfig',
     'rest_framework',
     'rest_framework.authtoken',
 
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
 }
-
+            
 
 
 MIDDLEWARE = [
@@ -140,3 +141,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
