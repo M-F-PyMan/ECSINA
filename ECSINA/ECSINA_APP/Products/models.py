@@ -1,3 +1,20 @@
 from django.db import models
 
-# Create your models here.
+class Category(models.Model):
+    title = models.CharField(max_length=255)
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
+
+    def __str__(self):
+        return self.title
+
+class Product(models.Model):
+    title = models.CharField(max_length=255)
+    body = models.TextField()
+    size = models.CharField(max_length=50)
+    format = models.CharField(max_length=50)
+    file_path = models.CharField(max_length=255)
+    image_path = models.CharField(max_length=255)
+    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
+
+    def __str__(self):
+        return self.title
