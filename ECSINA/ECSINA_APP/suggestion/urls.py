@@ -1,8 +1,8 @@
-import django.urls
-from django.urls import path
-from . import views
+# suggestions/urls.py
+from rest_framework.routers import DefaultRouter
+from .views import SuggestionTextViewSet
 
-urlpatterns = [
-    # path("suggestion/", views.SuggestionList.as_view()),
-    # path("suggestion/<int:pk>/", views.SuggestionDetail.as_view()),
-]
+router = DefaultRouter()
+router.register(r'suggestions', SuggestionTextViewSet, basename='suggestion')
+
+urlpatterns = router.urls
