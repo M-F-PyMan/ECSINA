@@ -21,7 +21,7 @@ SECRET_KEY = 'django-insecure-)ouzyyjwvacnu*!$%pd=1&*xnsx$m1(2=kio3q#4+w)7-q^^0a
 DEBUG = True
 ALLOWED_HOSTS = []
 
-# 👤 Custom User Model
+#  Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
 #  Installed Apps
@@ -58,7 +58,7 @@ REST_FRAMEWORK = {
     ],
 }
 
-# 🔐 JWT Settings
+#  JWT Settings
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
@@ -128,6 +128,7 @@ HASHID_FIELD_SALT = ')h0p!5&33xmgqas+#w^!xhl4bm#(^qq2$oc5+!6x@0g2y-fyq*'
 
 #  Default Primary Key
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 
 
