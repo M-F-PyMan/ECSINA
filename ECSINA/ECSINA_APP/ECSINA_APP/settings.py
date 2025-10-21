@@ -32,7 +32,12 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
     #our_APP 
     'Accounts.apps.AccountsConfig',
     'Products.apps.ProductsConfig',
@@ -41,7 +46,7 @@ INSTALLED_APPS = [
     'jobs.apps.JobConfig',
     'rest_framework',
     'rest_framework.authtoken',
-    "suggestion.apps.SuggestionConfig",
+    'suggestion.apps.SuggestionConfig',
 
 ]
 
@@ -123,6 +128,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 
 
