@@ -1,18 +1,18 @@
 from rest_framework import serializers
-from .models import User, Profile
-#فیلد ثبت نام بهینه شده
-class UserRegistrationSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
-    bio = serializers.CharField(required=False)
-    avatar = serializers.ImageField(required=False)
+from .models import User, Profile, TempUser
 
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['name', 'email', 'mobile', 'password', 'bio', 'avatar']
+        fields = '__all__'
+        read_only_fields = ['date_joined', 'is_active', 'is_staff']
 
-    def create(self, validated_data):
-        bio = validated_data.pop('bio', '')
-        avatar = validated_data.pop('avatar', None)
-        user = User.objects.create_user(**validated_data)
-        Profile.objects.create(user=user, bio=bio, avatar=avatar)
-        return user
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = '__all__'
+
+class TempUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TempUser
+        fields = '__all__'
