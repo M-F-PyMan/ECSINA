@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Job, FailedJob, JobBatch
+from .models import JobBatch, Job, FailedJob
 
 class JobBatchSerializer(serializers.ModelSerializer):
     class Meta:
