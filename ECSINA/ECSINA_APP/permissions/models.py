@@ -1,37 +1,50 @@
 from django.db import models
-from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey
 
-class Role(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    guard_name = models.CharField(max_length=255, default='web')
-
-    def __str__(self):
-        return self.name
-
+# 🔹 Permission Model
 class Permission(models.Model):
-    name = models.CharField(max_length=255, unique=True)
-    guard_name = models.CharField(max_length=255, default='web')
+    name = models.CharField("Permission Name", max_length=100, unique=True)
+    label = models.CharField("Label", max_length=255, blank=True, null=True)
+    description = models.TextField("Description", blank=True, null=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True)
 
     def __str__(self):
         return self.name
 
+    class Meta:
+        db_table = "permissions"
+        ordering = ["name"]
+
+
+# 🔹 Role Model
+class Role(models.Model):
+    name = models.CharField("Role Name", max_length=100, unique=True)
+    label = models.CharField("Label", max_length=255, blank=True, null=True)
+    description = models.TextField("Description", blank=True, null=True)
+    created_at = models.DateTimeField("Created At", auto_now_add=True)
+
+    permissions = models.ManyToManyField(
+        Permission,
+        through='RoleHasPermission',
+        related_name='roles'
+    )
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        db_table = "roles"
+        ordering = ["name"]
+
+
+# 🔹 RoleHasPermission (Join Table)
 class RoleHasPermission(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
+    assigned_at = models.DateTimeField("Assigned At", auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.role.name} → {self.permission.name}"
 
     class Meta:
-        unique_together = ('role', 'permission')
-
-class ModelHasRole(models.Model):
-    role = models.ForeignKey(Role, on_delete=models.CASCADE)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
-
-
-class ModelHasPermission(models.Model):
-    permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
-    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
-    object_id = models.PositiveIntegerField()
-    content_object = GenericForeignKey('content_type', 'object_id')
+        db_table = "role_has_permissions"
+        unique_together = ("role", "permission")
