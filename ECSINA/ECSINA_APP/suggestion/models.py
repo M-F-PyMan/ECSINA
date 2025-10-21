@@ -1,30 +1,51 @@
 from django.db import models
+from django.utils import timezone
 
-
-STATUS_CHOICES = (
-    ("pending", "Pending"),
-    ("approved", "Approved"),
-    ("rejected", "Rejected"),
-)
-
+# اگر اپ accounts و products جدا هستن، باید به صورت 'accounts.User' و 'products.Category' اشاره کنیم
 
 class SuggestionText(models.Model):
-    name = models.CharField(max_length=500)
-    description = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    user_id = models.BigIntegerField(db_column="user_id")
-    category_id = models.BigIntegerField(
-        models.DO_NOTHING,
-        db_column="category_id",
+    STATUS_CHOICES = (
+        ("pending", "Pending"),
+        ("approved", "Approved"),
+        ("rejected", "Rejected"),
     )
-    created_by = models.BigIntegerField(db_column="created_by")
-    updated_by = models.BigIntegerField(db_column="updated_by")
 
-    class Meta:
-        db_table = "suggestions_text"
-        managed = True
+    name = models.CharField("Title", max_length=500)
+    description = models.TextField("Description")
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default="pending")
+
+    user = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.CASCADE,
+        related_name='suggestions'
+    )
+    category = models.ForeignKey(
+        'products.Category',
+        on_delete=models.CASCADE,
+        related_name='suggestions'
+    )
+
+    created_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_suggestions'
+    )
+    updated_by = models.ForeignKey(
+        'accounts.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='updated_suggestions'
+    )
+
+    created_at = models.DateTimeField("Created At", auto_now_add=True)
+    updated_at = models.DateTimeField("Updated At", auto_now=True)
 
     def __str__(self):
-        return f"{self.name} - ({self.status})"
+        return f"{self.name} ({self.status})"
+
+    class Meta:
+        db_table = "suggestion_texts"
+        ordering = ["-created_at"]
