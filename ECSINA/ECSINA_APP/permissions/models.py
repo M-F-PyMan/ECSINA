@@ -1,6 +1,5 @@
 from django.db import models
 
-# 🔹 Permission Model
 class Permission(models.Model):
     name = models.CharField("Permission Name", max_length=100, unique=True)
     label = models.CharField("Label", max_length=255, blank=True, null=True)
@@ -15,7 +14,6 @@ class Permission(models.Model):
         ordering = ["name"]
 
 
-# 🔹 Role Model
 class Role(models.Model):
     name = models.CharField("Role Name", max_length=100, unique=True)
     label = models.CharField("Label", max_length=255, blank=True, null=True)
@@ -36,7 +34,7 @@ class Role(models.Model):
         ordering = ["name"]
 
 
-# 🔹 RoleHasPermission (Join Table)
+
 class RoleHasPermission(models.Model):
     role = models.ForeignKey(Role, on_delete=models.CASCADE)
     permission = models.ForeignKey(Permission, on_delete=models.CASCADE)
