@@ -1,48 +1,56 @@
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
-
-from django.db import models
+from suggestion.models import Proposal
+from django.utils import timezone
 
 class Category(models.Model):
     title = models.CharField(max_length=255)
-    parent = models.ForeignKey(
-        'self',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name='children'
-    )
+    parent = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='children')
 
     def __str__(self):
         return self.title
-
-    class Meta:
-        ordering = ['title']
-
-
 
 class Product(models.Model):
-    title = models.CharField(max_length=255)
-    body = models.TextField()
-    size = models.CharField(max_length=50)
-    format = models.CharField(max_length=50)
+    proposal = models.OneToOneField('suggestion.Proposal', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='product')
 
-    file_path = models.FileField(upload_to='products/files/', blank=True, null=True)
-    image_path = models.ImageField(upload_to='products/images/', blank=True, null=True)
+    price = models.PositiveIntegerField(default=0)
+    is_available = models.BooleanField(default=True)
+    is_featured = models.BooleanField(default=False)
+    discount_percent = models.PositiveIntegerField(default=0)
+    sold_count = models.PositiveIntegerField(default=0)
 
-    category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='products')
+    # کنترل دسترسی
+    allow_preview = models.BooleanField(default=True)  # فقط پیش‌نمایش قابل نمایش باشه
+    allow_download_after_payment = models.BooleanField(default=True)  # لینک دانلود فقط بعد از پرداخت فعال بشه
+
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(default=timezone.now)
+
+    def final_price(self):
+        if self.discount_percent:
+            return int(self.price * (100 - self.discount_percent) / 100)
+        return self.price
 
     def __str__(self):
-        return self.title
+        return f"Product for {self.proposal.title}"
+
+    class Meta:
+        db_table = "products"
+        ordering = ["-created_at"]
 
 
 class Image(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='images')
-    path = models.ImageField(upload_to='products/images/')
+    path = models.CharField(max_length=255)
+    imageable_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    imageable_id = models.PositiveIntegerField()
+    imageable = GenericForeignKey('imageable_type', 'imageable_id')
+
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        db_table = 'images'
+
     def __str__(self):
-        return f"{self.path.name} → {self.product.title}"
-
-
+        return self.path
