@@ -12,12 +12,16 @@ urlpatterns = [
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     #  API Routes
-    path('api/v1/accounts/', include('accounts.urls')),
-    path('api/v1/products/', include('products.urls')),
+    path('api/v1/accounts/', include('Accounts.urls')),
+    path('api/v1/products/', include('Products.urls')),
     path('api/v1/system/', include("system_settings.urls")),
     path('api/v1/access/', include('permissions.urls')),
     path('api/v1/jobs/', include('jobs.urls')),
-    path('api/v1/suggestions/', include('suggestions.urls')),
+    path('api/v1/suggestions/', include('suggestion.urls')),
+    path('api/v1/comments/', include('comments.urls')),
+    path('api/v1/faq/', include('faq.urls')),
+    path('api/v1/support/', include('support.urls')),
+
 ]
 
 #  Static & Media Files (for development)
