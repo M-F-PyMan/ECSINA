@@ -1,0 +1,105 @@
+from rest_framework import serializers
+from .models import User, Profile, TempUser,UserProposalUpload,ConsultantReply,UserCategory,UserCategoryItem,UserActivityLog
+from permissions.models import Role
+
+
+class UserSerializer(serializers.ModelSerializer):
+    role_display = serializers.CharField(source='get_role_display', read_only=True)
+    role_id = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), source='role', write_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'name', 'email', 'mobile',
+            'role', 'role_id', 'role_display',
+            'sms_sent_code', 'sms_sent_date', 'sms_sent_tries',
+            'is_active', 'is_staff', 'date_joined',
+        ]
+        read_only_fields = ['date_joined', 'role_display']
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
+
+        # فقط owner یا admin اجازه تغییر نقش و وضعیت‌ها رو دارن
+        if not user or not user.role or user.role.name not in ['owner', 'admin']:
+            validated_data.pop('role', None)
+            validated_data.pop('is_active', None)
+            validated_data.pop('is_staff', None)
+
+        return super().update(instance, validated_data)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = '__all__'
+
+
+class TempUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TempUser
+        fields = '__all__'
+
+
+class UserProposalUploadSerializer(serializers.ModelSerializer):
+    consultant_reply = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_download = serializers.SerializerMethodField()
+    editable_content = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = UserProposalUpload
+        fields = ['id', 'title', 'file', 'is_paid', 'editable_content','is_free', 'can_edit', 'can_download', 'consultant_reply']
+
+    def get_can_edit(self, obj):
+        user = self.context['request'].user
+        return obj.can_user_edit(user)
+
+    def get_can_download(self, obj):
+        user = self.context['request'].user
+        return obj.can_user_download(user)
+
+    def get_consultant_reply(self, obj):
+        reply = ConsultantReply.objects.filter(proposal_upload=obj).last()
+        if reply:
+            return {
+                "message": reply.message,
+                "replied_at": reply.replied_at
+            }
+        return None
+
+
+
+class ConsultantReplySerializer(serializers.ModelSerializer):
+    display_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ConsultantReply
+        fields = ['id', 'proposal_upload', 'consultant', 'message', 'file', 'replied_at', 'display_name']
+        read_only_fields = ['consultant', 'replied_at', 'display_name']
+
+    def get_display_name(self, obj):
+        return obj.get_display_name()
+
+
+
+
+class UserCategoryItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserCategoryItem
+        fields = '__all__'
+
+
+class UserCategorySerializer(serializers.ModelSerializer):
+    items = UserCategoryItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = UserCategory
+        fields = ['id', 'title', 'created_at', 'items']
+
+
+class UserActivityLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserActivityLog
+        fields = '__all__'

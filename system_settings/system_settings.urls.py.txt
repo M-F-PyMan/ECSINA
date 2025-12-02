@@ -1,0 +1,8 @@
+from rest_framework.routers import DefaultRouter
+from .views import SystemSettingViewSet,FAQViewSet
+
+router = DefaultRouter()
+router.register(r'settings', SystemSettingViewSet)
+router.register(r'faqs', FAQViewSet)
+
+urlpatterns = router.urls

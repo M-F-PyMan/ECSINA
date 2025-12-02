@@ -1,0 +1,72 @@
+from django.contrib import admin
+from .models import User, TempUser, Profile, UserCategory, UserCategoryItem
+from django import forms
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from permissions.models import Role
+
+# فرم سفارشی برای تعیین نقش کاربر
+class CustomUserAdminForm(forms.ModelForm):
+    role = forms.ModelChoiceField(
+        queryset=Role.objects.all(),
+        required=False,
+        label="نقش کاربر"
+    )
+
+    class Meta:
+        model = User
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # فقط برای سوپر یوزر یا owner قابل نمایش باشه
+        request = kwargs.get('request')
+        if request and not (request.user.is_superuser or getattr(request.user.role, 'name', '') == 'owner'):
+            self.fields.pop('is_consultant_admin', None)
+
+
+# کلاس ادمین سفارشی با فرم سفارشی
+
+class CustomUserAdmin(BaseUserAdmin):
+    form = CustomUserAdminForm
+    model = User
+    list_display = ('email', 'name', 'mobile', 'role', 'is_consultant_admin', 'is_staff', 'is_active', 'deleted_by')
+    list_filter = ('is_staff', 'is_active', 'role', 'is_consultant_admin')
+    fieldsets = (
+        (None, {'fields': ('email', 'name', 'mobile', 'password', 'role', 'is_consultant_admin')}),
+        ('Permissions', {'fields': ('is_staff', 'is_active', 'is_superuser', 'groups', 'user_permissions')}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'name', 'mobile', 'password1', 'password2', 'role', 'is_consultant_admin', 'is_staff', 'is_active')}
+        ),
+    )
+    search_fields = ('email', 'name', 'mobile')
+    ordering = ('email',)
+
+    def get_form(self, request, obj=None, **kwargs):
+        kwargs['form'] = self.form
+        form = super().get_form(request, obj, **kwargs)
+        form.request = request  # ارسال request به فرم
+        return form
+
+
+# ثبت مدل‌ها در پنل ادمین
+admin.site.register(User, CustomUserAdmin)
+admin.site.register(TempUser)
+admin.site.register(Profile)
+
+
+@admin.register(UserCategory)
+class UserCategoryAdmin(admin.ModelAdmin):
+    list_display = ['title', 'user', 'created_at']
+    search_fields = ['title', 'user__email']
+    list_filter = ['created_at']
+
+
+@admin.register(UserCategoryItem)
+class UserCategoryItemAdmin(admin.ModelAdmin):
+    list_display = ['user_category', 'file', 'added_at']
+    search_fields = ['user_category__title', 'file__title']
+    list_filter = ['added_at']

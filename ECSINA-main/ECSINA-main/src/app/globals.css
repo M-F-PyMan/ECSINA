@@ -1,0 +1,257 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: "Yekan";
+  src: url("/fonts/YekanBakh-Regular.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yekan-SemiBold";
+  src: url("/fonts/YekanBakh-SemiBold.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yekan-Bold";
+  src: url("/fonts/YekanBakh-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Yekan-ExtraBold";
+  src: url("/fonts/YekanBakh-ExtraBold.woff2") format("woff2");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Vazir";
+  src: url("/fonts/Vazirmatn-Regular.woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IranSans";
+  src: url("/fonts/iransansdn.woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+html,
+body {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  margin: 0;
+  font-family: "Vazir", "IranSans";
+}
+
+#__next {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+@theme {
+  /* Primary Colors */
+  --color-primary-0: #e5ebff;
+  --color-primary-1: #ced8f8;
+  --color-primary-2: #b7c4f2;
+  --color-primary-3: #a0b1eb;
+  --color-primary-4: #899de4;
+  --color-primary-5: #5c77d7;
+  --color-primary-6: #2e50c9;
+  --color-primary-7: #0029bc;
+  --color-primary-8: #002196;
+  --color-primary-9: #001971;
+  --color-primary-10: #00104b;
+  --color-primary-11: #000c38;
+  --color-primary-12: #000826;
+  --color-primary-13: #000413;
+  --color-primary-14: #000000;
+  --color-primary-15: #2e2f33;
+  --color-primary-16: #0029bccc;
+  --color-input: rgba(129, 184, 206, 0.28);
+
+  /* Secondary Colors */
+  --color-secondary-1: #ffffff;
+  --color-secondary-2: #fbfcfa;
+  --color-secondary-3: #f8f8f6;
+  --color-secondary-4: #f4f5f1;
+  --color-secondary-5: #f1f1ec;
+  --color-secondary-6: #e9ebe3;
+  --color-secondary-7: #e2e4d9;
+  --color-secondary-8: #dbddd0;
+  --color-secondary-9: #bec0b2;
+  --color-secondary-10: #a1a393;
+  --color-secondary-11: #848775;
+  --color-secondary-12: #767866;
+  --color-secondary-13: #676a56;
+  --color-secondary-14: #595b47;
+  --color-secondary-15: #4a4d38;
+  --color-secondary-16: #9e9e9e;
+  --color-secondary-17: #d1d1d1;
+  --color-secondary-18: #475467;
+  --color-secondary-19: #464935;
+  --color-secondary-20: #19002b;
+  --color-secondary-21: #3e243c;
+  --color-secondary-22: #a4afb1;
+
+  /* Main Theme Colors */
+  --color-main-0: #0029bc;
+  --color-main-1: #0029bc;
+  --color-main-2: #0e80b6;
+  --color-main-3: #e5ebff;
+  --color-main-4: #ff5252;
+
+  /* Gradient */
+
+  --gradient-landing: linear-gradient(0.53deg, rgba(246, 255, 194, 0.36) 7.05%, rgba(174, 194, 255, 0.32) 49.64%, rgba(2, 57, 255, 0.32) 99.51%);
+
+
+  --gradient-cart-icon: linear-gradient(139.85deg, #000826 -15.13%, #001971 49.55%, #0029bc 137.91%);
+
+  --gradient-main-background: linear-gradient(53.92deg, rgba(249, 252, 233, 0.8) 2.53%, rgba(245, 247, 235, 0.8) 52.16%, #f1f1ec 105.15%),
+    linear-gradient(359.22deg, rgba(251, 252, 250, 0) -7.38%, #fbfcfa 100.86%);
+
+  --gradient-invite-cart: linear-gradient(96.69deg, rgba(255, 255, 255, 0.3) -2.13%, rgba(229, 235, 255, 0.9) 24.06%, rgba(255, 255, 255, 0.1) 96.04%),
+    linear-gradient(85.74deg, rgba(255, 255, 255, 0.3) 0.73%, rgba(248, 253, 226, 0.3) 77.66%);
+
+  --gradient-comment: linear-gradient(278.67deg, #e5ebff -0.11%, #dae2fc 56.32%, #ced8f8 101.57%);
+
+  --gradient-secondary-background: linear-gradient(278.67deg, #e5ebff -0.11%, #dae2fc 56.32%, #ced8f8 101.57%), linear-gradient(180deg, rgba(255, 255, 255, 0) -16.57%, #ffffff 84.63%);
+
+  --shadow-stroke2: linear-gradient(139.79deg, #f2f5fb 0.21%, #f7f9ee 106.61%);
+
+  /* shadow */
+  --shadow-product-cart: 0px 1px 4px 0px #2e2f33;
+  --shadow-feature-cart: 0px 4px 3px 0px #dbddd0;
+  --shadow-invite-cart: 0px 1px 2px 0px #00000040;
+  --shadow-icon: 0px 2px 4px 0px #1e132840;
+  --shadow-hover: 0px 2px 4px 0px #2e2f33;
+
+  /* font */
+  --font-yekan: "Yekan";
+  --font-yekanBold: "Yekan-Bold";
+  --font-yekanSemiBold: "Yekan-SemiBold";
+  --font-yekanExtraBold: "Yekan-ExtraBold";
+  --font-iransans: "IranSans";
+  /* global.css */
+}
+
+@utility container {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 1rem;
+  padding-left: 1rem;
+  position: relative;
+
+  @variant sm {
+    max-width: 640px;
+    padding-right: 1.5rem;
+    padding-left: 1.5rem;
+  }
+
+  @variant md {
+    max-width: 768px;
+    padding-right: 2rem;
+    padding-left: 2rem;
+  }
+
+  @variant lg {
+    max-width: 1024px;
+    padding-right: 2.5rem;
+    padding-left: 2.5rem;
+  }
+
+  @variant xl {
+    max-width: 1280px;
+    padding-right: 3rem;
+    padding-left: 3rem;
+  }
+
+  @variant 2xl {
+    max-width: 1536px;
+    padding-right: 4rem;
+    padding-left: 4rem;
+  }
+}
+
+@layer utilities {
+  /* gradient */
+  .gradient-nav-background{
+    background: linear-gradient(152.1deg, #0029BC 2.31%, rgba(0, 41, 188, 0.6) 96.75%);
+  }
+  .gradient-landing {
+    background: var(--gradient-landing);
+  }
+  .gradient-cart-icon {
+    background: var(--gradient-cart-icon);
+  }
+  .gradient-main-background {
+    background:linear-gradient(to bottom, #ffff 0%, #f5f7ebcc 80%, rgba(249, 252, 233, 0.8) 100%);
+  }
+  .gradient-invite-cart {
+    background: var(--gradient-invite-cart);
+  }
+  .gradient-comment {
+    background: var(--gradient-comment);
+  }
+  .gradient-secondary-background {
+    background: var(--gradient-secondary-background);
+  }
+  .gradient-stroke2 {
+    background: var(--shadow-stroke2);
+  }
+  .gradient-landing2 {
+    background: linear-gradient(to bottom, rgba(206, 216, 248, 1) 0%, rgba(206, 216, 248, 1) 20%, rgba(0, 0, 0, 0) 100%);
+  }
+  .box-gradient {
+    background: linear-gradient(-245.07deg, rgba(229, 235, 255, 0.36) 0%, #dfe6fd 63.94%, #ced8f8 100%);
+  }
+  .gradient_about {
+    background: linear-gradient(to bottom, #ffff 0%, #f5f7ebcc 80%, rgba(249, 252, 233, 0.8) 100%);
+  }
+  /* shadow */
+  .shadow-product-cart {
+    box-shadow: var(--shadow-product-cart);
+  }
+  .shadow-feature-cart {
+    box-shadow: var(--shadow-feature-cart);
+  }
+  .shadow-invite-cart {
+    box-shadow: var(--shadow-invite-cart);
+  }
+  .shadow-icon {
+    box-shadow: var(--shadow-icon);
+  }
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+  .shadow-sticker {
+    backdrop-filter: blur(15px);
+    box-shadow: 0px 1px 1px 0px #00000040;
+  }
+
+  .blue_shadow {
+    box-shadow: 0px 4px 12px 0px rgba(0, 41, 188, 0.6);
+  }
+
+  .about_dropshadow {
+    box-shadow: 0px 1px 4px 0px #2e2f33;
+  }
+  .shadow-nav-sidebar{
+    box-shadow: -2px 2px 4px 0px rgba(0, 0, 0, 0.25);
+  }
+  .shadow-dropdown{
+    box-shadow: 0px 2px 2px 0px rgba(0, 0, 0, 0.25);
+  }
+}
