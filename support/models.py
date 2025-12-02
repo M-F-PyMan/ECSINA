@@ -42,3 +42,19 @@ class UserQuestion(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.question[:30]}"
+
+class About(models.Model):
+    title = models.CharField(max_length=255)
+    subtitle = models.CharField(max_length=255, blank=True, null=True)
+    description = models.TextField()
+    # برای مدیریت ویژگی‌ها می‌تونیم مدل جدا بسازیم
+    def __str__(self):
+        return self.title
+
+class AboutFeature(models.Model):
+    about = models.ForeignKey(About, related_name="features", on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    desc = models.TextField()
+
+    def __str__(self):
+        return self.title

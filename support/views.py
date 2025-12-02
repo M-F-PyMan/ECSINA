@@ -1,8 +1,9 @@
 from rest_framework import viewsets, permissions,status
 from rest_framework.exceptions import PermissionDenied
-from .models import Ticket, TicketReply,UserQuestion
-from .serializers import TicketSerializer, TicketReplySerializer,UserQuestionSerializer
+from .models import Ticket, TicketReply,UserQuestion,About
+from .serializers import TicketSerializer, TicketReplySerializer,UserQuestionSerializer,AboutSerializer
 from rest_framework.views import APIView
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from django.utils.dateparse import parse_date
 class TicketViewSet(viewsets.ModelViewSet):
@@ -90,3 +91,13 @@ class UserQuestionViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+
+class AboutView(RetrieveAPIView):
+    queryset = About.objects.all()
+    serializer_class = AboutSerializer
+
+    def get_object(self):
+        # فرض می‌کنیم فقط یک رکورد About داریم
+        return About.objects.first()
+
