@@ -29,11 +29,9 @@ const LoginPage = () => {
 
       const data = await response.json();
 
-      // ذخیره توکن‌ها
       localStorage.setItem("access", data.access);
       localStorage.setItem("refresh", data.refresh);
 
-      // ریدایرکت بعد از موفقیت
       window.location.href = "/";
     } catch (err) {
       console.error("Login error:", err);
@@ -50,12 +48,9 @@ const LoginPage = () => {
         <Link href={"/"}>
           <IoClose size={24} />
         </Link>
-        <h4 className="font-semibold text-[12px] md:text-[24px] text-primary-7 opacity-80 text-center mt-[18px] mb-[97px]">
+        <h4 className="font-semibold text-[12px] md:text-[24px] text-primary-7 opacity-80 text-center mt-[18px] mb-[40px]">
           ورود به اکسینا
         </h4>
-        <h6 className="opacity-60 text-primary-7 text-[10px] md:text-[20px]">
-          فراموشی/ تغییر رمز عبور
-        </h6>
 
         <div className="flex flex-col gap-[16px] mt-[16px] text-[8px] md:text-[16px]">
           <div className="bg-secondary-4 p-[16px] rounded-[4px] flex flex-col gap-[8px]">
@@ -88,12 +83,19 @@ const LoginPage = () => {
 
         <Button
           icon={"/assets/icons/Arrow.svg"}
-          className="mx-auto mt-[24px] mb-[90px] md:mb-[40px]"
+          className="mx-auto mt-[24px] mb-[20px]"
           onClick={handleLogin}
           disabled={loading}
         >
           {loading ? "در حال ورود..." : "ورود"}
         </Button>
+
+        {/* لینک صحیح فراموشی رمز عبور به مسیر app/auth/forgot_password/two_step */}
+        <div className="text-center mt-[10px]">
+          <Link href="/auth/forgot_password/two_step" className="text-sm text-blue-600 hover:underline">
+            فراموشی رمز عبور؟
+          </Link>
+        </div>
       </div>
     </>
   );
