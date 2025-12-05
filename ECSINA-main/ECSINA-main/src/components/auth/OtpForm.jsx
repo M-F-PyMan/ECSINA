@@ -6,53 +6,82 @@ import AuthInput from "./AuthInput";
 import Button from "../UI/Button";
 import AuthCardLayout from "./LoginLayout";
 
-const CodeVerificationForm = ({ phoneNumber, onBack }) => {
-  const maskPhoneNumber = (phone) => {
-    if (!phone || phone.length !== 11) return phone;
-    // Reverse the number and apply the masking
-    return `${phone.slice(7, 11)}***${phone.slice(0, 4)}`;
+const CodeVerificationForm = ({ identifier, onBack }) => {
+  const maskIdentifier = (id) => {
+    if (!id) return id;
+    if (id.includes("@")) {
+      // ایمیل
+      const [name, domain] = id.split("@");
+      return `${name.slice(0, 2)}***@${domain}`;
+    } else {
+      // موبایل
+      return `${id.slice(7, 11)}***${id.slice(0, 4)}`;
+    }
   };
 
-  const [timeLeft, setTimeLeft] = useState(120); // 2 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(120);
   const [canResend, setCanResend] = useState(false);
-
-  // Format seconds to MM:SS
-  const formatTime = (seconds) => {
-    const min = Math.floor(seconds / 60)
-      .toString()
-      .padStart(1, "0");
-    const sec = (seconds % 60).toString().padStart(2, "0");
-    return `${min}:${sec}`;
-  };
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (timeLeft <= 0) {
       setCanResend(true);
       return;
     }
-
     const timer = setInterval(() => {
       setTimeLeft((prev) => prev - 1);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  const handleResend = () => {
-    console.log("Resend code triggered");
-    setTimeLeft(120);
-    setCanResend(false);
-    // You could also trigger actual API call here
+  const formatTime = (seconds) => {
+    const min = Math.floor(seconds / 60).toString().padStart(2, "0");
+    const sec = (seconds % 60).toString().padStart(2, "0");
+    return `${min}:${sec}`;
   };
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const handleResend = async () => {
+    try {
+      const res = await fetch("http://10.1.192.2:8000/auth/send-otp/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        setTimeLeft(120);
+        setCanResend(false);
+        setError("");
+      } else {
+        setError(result.detail || "خطا در ارسال مجدد کد");
+      }
+    } catch (err) {
+      setError("ارتباط با سرور برقرار نشد");
+    }
+  };
 
-  const onSubmit = (data) => {
-    console.log("Entered code:", data.code);
+  const { register, handleSubmit, formState: { errors } } = useForm();
+
+  const onSubmit = async (data) => {
+    try {
+      const res = await fetch("http://10.1.192.2:8000/auth/verify-otp/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, code: data.code }),
+      });
+      const result = await res.json();
+
+      if (res.ok) {
+        // ذخیره identifier برای مرحله بعد
+        localStorage.setItem("identifier", identifier);
+        // ریدایرکت به صفحه تغییر رمز عبور
+        window.location.href = "/auth/reset_password/reset";
+      } else {
+        setError(result.detail || "کد اشتباه یا منقضی شده است");
+      }
+    } catch (err) {
+      setError("ارتباط با سرور برقرار نشد");
+    }
   };
 
   return (
@@ -61,21 +90,21 @@ const CodeVerificationForm = ({ phoneNumber, onBack }) => {
         <button className="cursor-pointer flex flex-row-reverse gap-1 items-center">
           <Image width={42} height={42} src="/icons/loginClose.svg" alt="Close" />
         </button>
-        <p className="text-[#1E1328CC] flex items-center">ورود دو مرحله ای</p>
+        <p className="text-[#1E1328CC] flex items-center">تأیید کد</p>
         <button onClick={onBack} className="cursor-pointer">
-          <Image src="/icons/backArrow.svg" width={24} height={24} alt="Login"></Image>
+          <Image src="/icons/backArrow.svg" width={24} height={24} alt="Back"></Image>
         </button>
       </div>
-      <p className="text-black text-[16px] font-normal">برای ورود ، کد ارسالی به موبایل خود را در فرم زیر را وارد نمایید.</p>
+      <p className="text-black text-[16px] font-normal">
+        کد ارسال‌شده به {maskIdentifier(identifier)} را وارد کنید.
+      </p>
       <div className="flex justify-between items-center">
-        <p className=" flex flex-row-reverse items-center rounded-[4px] bg-gradient-to-r from-[#3E243C] via-[#71416D] via-[45.5%] to-[#A45F9E] max-w-[350px] max-h-[42px] p-3 justify-center text-center text-white font-normal text-[14px] text-nowrap">
-          کد تایید به شماره همراه {maskPhoneNumber(phoneNumber)} ارسال شده است.{" "}
-        </p>
         {!canResend ? (
-          <p className="bg-gradient-to-r from-[#3E243C] via-[#71416D] via-[45.5%] to-[#A45F9E] bg-clip-text text-transparent text-2xl">{formatTime(timeLeft)}</p>
+          <p className="bg-gradient-to-r from-[#3E243C] via-[#71416D] to-[#A45F9E] bg-clip-text text-transparent text-2xl">
+            {formatTime(timeLeft)}
+          </p>
         ) : (
           <button onClick={handleResend} className="text-[#71416D] underline text-sm">
-            {" "}
             ارسال مجدد کد
           </button>
         )}
@@ -88,8 +117,13 @@ const CodeVerificationForm = ({ phoneNumber, onBack }) => {
             minLength: { value: 4, message: "کد باید حداقل ۴ رقم باشد" },
           })}
           error={errors.code?.message}
-        ></AuthInput>
-        <Button type="submit" className={"w-[280px] flex justify-center h-[70px] [&>*]:text-2xl mb-6 justify-self-center"} text={"ورود"}></Button>
+        />
+        {error && <p className="text-main-4 text-center">{error}</p>}
+        <Button
+          type="submit"
+          className="w-[280px] flex justify-center h-[70px] [&>*]:text-2xl mb-6 justify-self-center"
+          text={"تأیید"}
+        />
       </form>
     </AuthCardLayout>
   );
