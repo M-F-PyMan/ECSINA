@@ -1,5 +1,15 @@
 from rest_framework import serializers
-from .models import User, Profile, TempUser,UserProposalUpload,ConsultantReply,UserCategory,UserCategoryItem,UserActivityLog
+from .models import (
+    User,
+    Profile,
+    TempUser,
+    UserProposalUpload,
+    ConsultantReply,
+    UserCategory,
+    UserCategoryItem,
+    UserActivityLog,
+    OTP,
+)
 from permissions.models import Role
 from django.core.validators import RegexValidator, EmailValidator
 from django.utils.html import strip_tags
@@ -146,7 +156,27 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+class SendOTPSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
 
+    def validate_identifier(self, value):
+        if "@" in value:
+            if not User.objects.filter(email=value).exists():
+                raise serializers.ValidationError("کاربری با این ایمیل وجود ندارد.")
+        else:
+            if not User.objects.filter(mobile=value).exists():
+                raise serializers.ValidationError("کاربری با این شماره وجود ندارد.")
+        return value
+
+
+class VerifyOTPSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
+    code = serializers.CharField(max_length=6)
+
+
+class ResetPasswordSerializer(serializers.Serializer):
+    identifier = serializers.CharField()
+    new_password = serializers.CharField(min_length=8, max_length=128)
 
 
 

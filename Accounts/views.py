@@ -16,6 +16,7 @@ from django.http import HttpResponse
 from xhtml2pdf import pisa
 from rest_framework_simplejwt.tokens import RefreshToken
 from docx.oxml.ns import qn
+from django.conf import settings
 from docx.shared import Pt
 from pathlib import Path
 from django.core.validators import validate_email
@@ -29,6 +30,8 @@ from .models import (
     UserCategory,
     UserCategoryItem,
     UserActivityLog,
+    OTP
+
 )
 
 from .serializers import (
@@ -41,6 +44,9 @@ from .serializers import (
     UserCategoryItemSerializer,
     UserActivityLogSerializer,
     RegisterSerializer,
+    SendOTPSerializer,
+    VerifyOTPSerializer,
+    ResetPasswordSerializer,
 
 )
 from django_ratelimit.decorators import ratelimit
@@ -363,3 +369,52 @@ class LoginView(APIView):
             'email': user.email,
             'mobile': user.mobile,
         }, status=status.HTTP_200_OK)
+
+
+class SendOTPView(APIView):
+    def post(self, request):
+        serializer = SendOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        identifier = serializer.validated_data['identifier']
+
+        user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
+        otp = OTP.create_for_user(user)
+        result = otp.send_sms(api_key=settings.FARAZSMS_API_KEY)
+
+        if not result.get("success"):
+            return Response({"detail": result.get("error")}, status=status.HTTP_502_BAD_GATEWAY)
+
+        return Response({"detail": "کد تأیید ارسال شد."}, status=status.HTTP_200_OK)
+
+
+class VerifyOTPView(APIView):
+    def post(self, request):
+        serializer = VerifyOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        identifier = serializer.validated_data['identifier']
+        code = serializer.validated_data['code']
+
+        user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
+        otp = OTP.objects.filter(user=user, code=code).order_by('-created_at').first()
+
+        if not otp or not otp.is_valid():
+            user.sms_sent_tries += 1
+            user.save(update_fields=['sms_sent_tries'])
+            return Response({"detail": "کد نامعتبر یا منقضی شده."}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp.mark_used()
+        return Response({"detail": "کد تأیید شد. می‌توانید رمز را تغییر دهید."}, status=status.HTTP_200_OK)
+
+
+class ResetPasswordView(APIView):
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        identifier = serializer.validated_data['identifier']
+        new_password = serializer.validated_data['new_password']
+
+        user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
+        user.set_password(new_password)
+        user.save()
+
+        return Response({"detail": "رمز عبور با موفقیت تغییر کرد."}, status=status.HTTP_200_OK)
