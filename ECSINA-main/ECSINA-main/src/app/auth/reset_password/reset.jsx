@@ -21,19 +21,21 @@ const ResetPasswordPage = () => {
     setError("");
 
     try {
-      const identifier = localStorage.getItem("identifier"); // ایمیل یا موبایل ذخیره‌شده بعد از OTP
+      // ایمیل یا موبایل ذخیره‌شده در مرحله OTP
+      const identifier = localStorage.getItem("identifier");
+
       const response = await fetch("http://10.1.192.2:8000/auth/reset-password/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ identifier, new_password: newPassword }),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.detail || "خطا در تغییر رمز عبور");
+        throw new Error(result.detail || "خطا در تغییر رمز عبور");
       }
 
-      // موفقیت
       alert("رمز عبور با موفقیت تغییر کرد. لطفاً دوباره وارد شوید.");
       window.location.href = "/auth/login";
     } catch (err) {
@@ -102,3 +104,4 @@ const ResetPasswordPage = () => {
 };
 
 export default ResetPasswordPage;
+
