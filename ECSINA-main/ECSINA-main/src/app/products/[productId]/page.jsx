@@ -1,26 +1,56 @@
+"use client";
+import { useEffect, useState } from "react";
 import MainLayout from "@/components/layout/MainLayout";
-import Breadcrumb from "@/components/products/Breadcrumb";
 import ProductDetails from "@/components/products/ProductDetails";
-import FrequentlyQuestions from "@/components/products/FrequentlyQuestions";
-import RecommendedProducts from "@/components/UI/RecommendedProducts";
 import AboutProduct from "@/components/products/AboutProduct";
+import FrequentlyQuestions from "@/components/products/FrequentlyQuestions";
 import CreateComment from "@/components/products/CreateComment";
-
-export const metadata = {
-  title: "صفحه محصول | اکسینا",
-  description: "صفحه محصول | اکسینا",
-};
+import RecommendedProducts from "@/components/UI/RecommendedProducts";
 
 export default function ProductPage({ params }) {
+  const { productId } = params;
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(
+          `http://10.1.192.2:8000/products/products/${productId}/detail/`
+        );
+        if (!res.ok) throw new Error("خطا در دریافت جزئیات محصول");
+        const json = await res.json();
+        setData(json);
+      } catch (e) {
+        setErr(e.message);
+      }
+    })();
+  }, [productId]);
+
   return (
     <MainLayout>
       <section className="gradient-main-background min-h-screen pb-5">
-        {/* <Breadcrumb /> */}
-        <ProductDetails />
-        <AboutProduct />
-        <FrequentlyQuestions />
-        <CreateComment />
-        <RecommendedProducts />
+        {err && <div className="text-red-600">{err}</div>}
+        {!data ? (
+          <div className="text-center mt-10">در حال بارگذاری...</div>
+        ) : (
+          <>
+            {/* جزئیات محصول شامل تب‌ها و دکمه دانلود */}
+            <ProductDetails data={data} />
+
+            {/* توضیحات محصول */}
+            <AboutProduct description={data.proposal?.description} />
+
+            {/* سوالات متداول */}
+            <FrequentlyQuestions faqs={data.faqs} />
+
+            {/* بخش ثبت نظر */}
+            <CreateComment proposalId={data.proposal?.id} />
+
+            {/* محصولات پیشنهادی مشابه */}
+            <RecommendedProducts categoryId={data.proposal?.category} />
+          </>
+        )}
       </section>
     </MainLayout>
   );

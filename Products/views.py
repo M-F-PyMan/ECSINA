@@ -1,6 +1,13 @@
 from rest_framework import viewsets, permissions
 from .models import Category, Product, Image
-from .serializers import CategorySerializer, ProductSerializer, ImageSerializer
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from .serializers import (
+    CategorySerializer,
+    ProductSerializer,
+    ImageSerializer,
+    ProductDetailSerializer,
+)
 from permissions.permissions import IsAdminOrOwner
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -21,6 +28,14 @@ class ProductViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save()
+
+    @action(detail=True, methods=['get'])
+    def detail(self, request, pk=None):
+        product = self.get_object()
+        serializer = ProductDetailSerializer(product, context={'request': request})
+        return Response(serializer.data)
+
+
 
 
 class ImageViewSet(viewsets.ModelViewSet):
