@@ -240,7 +240,7 @@ class OTP(models.Model):
         payload = {
             "mobile": self.user.mobile,
             "message": f"کد بازنشانی رمز عبور شما: {self.code}",
-            "api_key": api_key
+            "api_key": settings.FARAZ_SMS_API_KEY
         }
         try:
             response = requests.post(sms_url, data=payload, timeout=10)
