@@ -29,7 +29,7 @@ const AllComments = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch("http://192.168.56.1:8000/api/home/");
+        const res = await fetch("http://10.1.19.2:8000/api/home/");
         if (res.ok) {
           const data = await res.json();
           setComments(data.comments || []);

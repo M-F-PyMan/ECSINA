@@ -1,7 +1,7 @@
+import Link from "next/link";
 import Button from "../UI/Button";
 import Image from "next/image";
 import ScrollTopButton from "../UI/ScrollTopButton";
-import Link from "next/link";
 
 const Guidance = () => {
   return (
@@ -11,25 +11,25 @@ const Guidance = () => {
           قالب مورد نظرت رو پیدا نکردی؟
         </p>
         <p className="text-xs md:text-2xl font-normal text-black text-center max-w-5xl mb-4">
-          اگر هیچ‌کدوم از قالب‌ها پاسخگوی نیازت نبود، می‌تونی از طریق بخش پشتیبانی با ما در تماس باشی یا با ثبت‌نام در اکسینا، یک داشبورد شخصی داشته باشی که از اونجا به‌راحتی با پشتیبانی ما ارتباط بگیری.
+          اگر هیچ‌کدوم از قالب‌ها پاسخگوی نیازت نبود، می‌تونی از طریق راه‌های ارتباطی با ما در تماس باشی یا با ثبت‌نام در اکسینا، یک داشبورد شخصی داشته باشی که از اونجا به‌راحتی با پشتیبانی ما ارتباط بگیری.
         </p>
 
         {/* Buttons */}
         <div className="flex items-center gap-6 mb-8">
-          {/* مسیر اپ ساپورت */}
-          <Link href="/support">
-            <Button icon={"/assets/icons/Arrow.svg"}>ارتباط با ما</Button>
-          </Link>
+          {/* دکمه ارتباط با ما بدون تغییر */}
+          <Button icon={"/assets/icons/Arrow.svg"}>ارتباط با ما</Button>
 
-          {/* مسیر ثبت‌نام */}
-          <Link href="/auth/register">
-            <Button
-              icon={"/assets/icons/Arrow.svg"}
-              className="text-primary-7"
-              variant="outline"
-            >
-              ثبت نام
-            </Button>
+          {/* دکمه ثبت‌نام اصلاح‌شده */}
+          <Link
+            href="/auth/register"
+            className="flex items-center gap-2 rounded-xl py-3 px-9 md:px-12 md:py-4 text-xs md:text-xl font-medium cursor-pointer transition-all duration-200 group border border-primary-7 text-primary-7 hover:bg-primary-7 hover:text-white"
+          >
+            <img
+              src="/assets/icons/Arrow.svg"
+              alt="button icon"
+              className="object-contain transition-transform duration-200 group-hover:rotate-45"
+            />
+            <span>ثبت نام</span>
           </Link>
         </div>
       </div>
