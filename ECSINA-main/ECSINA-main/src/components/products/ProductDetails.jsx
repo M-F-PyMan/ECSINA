@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
+import useSWR from "swr";
 import Image from "next/image";
 import Button from "../UI/Button";
+import Breadcrumb from "../UI/Breadcrumb"; // اضافه شد
 import { AiOutlineShareAlt } from "react-icons/ai";
 import { BiDownload, BiImage } from "react-icons/bi";
 
@@ -12,9 +14,24 @@ const tabs = [
   { id: 4, title: "فایل مثال", key: "samples", fileField: "sample_file" },
 ];
 
-export default function ProductDetails({ data }) {
+const fetcher = (url) =>
+  fetch(url, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("access") || ""}`,
+    },
+  }).then((res) => res.json());
+
+export default function ProductDetails({ proposalId }) {
   const [activeTab, setActiveTab] = useState(1);
-  const proposalId = data.proposal?.id;
+
+  // گرفتن داده از بک‌اند
+  const { data, error, isLoading } = useSWR(
+    `http://10.1.192.2:8000/api/proposals/${proposalId}/`,
+    fetcher
+  );
+
+  if (error) return <div>خطا در بارگذاری جزئیات محصول...</div>;
+  if (isLoading) return <div>در حال بارگذاری...</div>;
 
   const currentItems = data[tabs[activeTab - 1].key] || [];
 
@@ -31,7 +48,6 @@ export default function ProductDetails({ data }) {
       );
       const json = await res.json();
       if (res.ok && json.download_url) {
-        // شروع دانلود
         window.location.href = json.download_url;
       } else {
         alert(json.detail || "اجازه دانلود ندارید.");
@@ -43,11 +59,20 @@ export default function ProductDetails({ data }) {
 
   return (
     <div className="container mt-4 md:mt-14">
+      {/* Breadcrumb */}
+      <Breadcrumb
+        items={[
+          { label: "خانه", url: "/" },
+          { label: data.category_name, url: `/categories/${data.category}` },
+          { label: data.title },
+        ]}
+      />
+
       <div className="bg-secondary-2 border border-primary-7 rounded-[10px] md:rounded-4xl px-2 md:px-12 md:pb-11 md:pt-16 pb-2 pt-5">
         {/* Header */}
         <div className="flex items-center justify-center md:justify-between">
           <p className="text-black font-bold text-xs md:text-3xl">
-            {data.proposal?.title || "عنوان قالب"}
+            {data.title || "عنوان قالب"}
           </p>
           <div className="hidden md:flex items-center gap-9">
             <span className="flex items-center gap-2">
@@ -65,12 +90,12 @@ export default function ProductDetails({ data }) {
         <div className="mt-3">
           <div className="bg-primary-0 flex justify-between rounded-t-[10px] md:rounded-t-4xl ">
             <div className="flex items-center">
-              {tabs.map((tab, idx) => (
+              {tabs.map((tab) => (
                 <span
                   onClick={() => setActiveTab(tab.id)}
                   key={tab.id}
                   className={`px-1.5 md:px-5 md:py-4 py-3 text-[10px] md:text-[18px] font-semibold cursor-pointer ${
-                    activeTab === idx + 1
+                    activeTab === tab.id
                       ? "bg-primary-8 text-white"
                       : "bg-transparent text-primary-7"
                   }`}
@@ -80,7 +105,7 @@ export default function ProductDetails({ data }) {
               ))}
             </div>
             <div className="hidden md:flex items-center gap-1 ml-5">
-              {(data.proposal?.images || []).slice(0, 4).map((img) => (
+              {(data.images || []).slice(0, 4).map((img) => (
                 <BiImage key={img.id} className="w-9 h-9" fill="#0029BC" />
               ))}
             </div>
@@ -89,7 +114,7 @@ export default function ProductDetails({ data }) {
           {/* Preview area */}
           <div className="relative w-full h-40 md:h-72 xl:h-96">
             <Image
-              src={data.proposal?.preview_image || "/assets/images/NotFound.png"}
+              src={data.preview_image || "/assets/images/NotFound.png"}
               alt=""
               fill
             />

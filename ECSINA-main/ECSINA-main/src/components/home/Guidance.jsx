@@ -33,6 +33,8 @@ const Guidance = () => {
           </Link>
         </div>
       </div>
+        <p>TEST GUIDANCE</p>
+
 
       {/* Wing */}
       <div className="absolute w-20 h-20 md:w-28 md:h-28 flex items-center justify-center p-1 md:p-2 bg-white rounded-full -top-1/6 md:-top-1/5 right-1/16">

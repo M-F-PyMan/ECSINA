@@ -83,7 +83,7 @@ function SignupForm() {
       meet: selectedValues["Meet"]?.name || "",
     };
 
-    const response = await fetch("http://192.168.56.1:8000/api/v1/accounts/auth/register/", {
+    const response = await fetch("http://http://10.1.19.2:8000/api/v1/accounts/auth/register/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",

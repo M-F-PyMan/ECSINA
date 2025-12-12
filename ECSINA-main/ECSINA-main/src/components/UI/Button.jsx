@@ -1,3 +1,4 @@
+"use client";
 import Image from "next/image";
 
 const Button = ({
@@ -6,9 +7,11 @@ const Button = ({
   type = "button",
   disabled = false,
   icon = null,
-  iconSize = 11,
+  iconAlt = "button icon",
+  iconSize = 16,
   onClick,
   className = "",
+  fullWidth = false,
   ...props
 }) => {
   const baseStyles =
@@ -17,14 +20,21 @@ const Button = ({
   const variants = {
     primary: "bg-primary-7 text-white hover:bg-primary-8",
     outline: "border border-2 border-primary-7 bg-transparent",
+    secondary: "bg-secondary-5 text-black hover:bg-secondary-6",
+    danger: "bg-red-600 text-white hover:bg-red-700",
   };
 
   const disabledStyles =
-    "bg-secondary-16 cursor-not-allowed pointer-events-none";
+    "bg-secondary-16 text-gray-400 cursor-not-allowed pointer-events-none";
 
-  const btnClass = `${baseStyles} ${variants[variant]} ${
-    disabled ? disabledStyles : ""
-  } ${className}`.trim();
+  const btnClass = [
+    baseStyles,
+    fullWidth ? "w-full" : "",
+    disabled ? disabledStyles : variants[variant],
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <button
@@ -37,11 +47,11 @@ const Button = ({
       {icon && (
         <Image
           src={icon}
-          alt="button icon"
+          alt={iconAlt}
           width={iconSize}
           height={iconSize}
           unoptimized
-          className={`object-contain transition-transform duration-200  group-hover:rotate-45  translate-z-0  ${
+          className={`object-contain transition-transform duration-200 group-hover:rotate-45 ${
             variant === "outline" ? "invert" : ""
           }`}
         />
@@ -50,4 +60,5 @@ const Button = ({
     </button>
   );
 };
+
 export default Button;
