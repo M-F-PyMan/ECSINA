@@ -21,9 +21,15 @@ const MobileMenu = ({ links }) => {
             <GiHamburgerMenu size={33} />
           </button>
 
-          <Link href="/auth/register">
-            <Button icon={"/assets/icons/Arrow.svg"}>ثبت نام</Button>
-          </Link>
+          {/* Auth buttons */}
+          <div className="flex items-center flex-wrap gap-[10px]">
+            <Link href="/auth/register">
+              <Button icon={"/assets/icons/Arrow.svg"}>ثبت نام</Button>
+            </Link>
+            <Link href="/auth/login">
+              <Button icon={"/assets/icons/Arrow.svg"}>ورود</Button>
+            </Link>
+          </div>
         </div>
 
         <Link href="/">
@@ -41,7 +47,7 @@ const MobileMenu = ({ links }) => {
 
       {/* Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-64 gradient-nav-background shadow-nav-sidebar z-50 transform transition-transform duration-300 rounded-bl-[50px] ${
+        className={`fixed top-0 right-0 h-full w-48 gradient-nav-background shadow-nav-sidebar z-50 transform transition-transform duration-300 rounded-bl-[50px] ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
@@ -51,18 +57,18 @@ const MobileMenu = ({ links }) => {
             <AiOutlineClose size={25} className="text-white" />
           </button>
 
-          {/* Menu Links */}
-          <ul className="p-6 flex flex-col items-start gap-6">
+          {/* Menus */}
+          <ul className="p-6 flex flex-col items-start gap-10">
             {links.map((link) => (
               <li key={link.id} className="text-white text-sm font-semibold">
                 <Link href={link.href} onClick={closeMenu}>
                   {link.title}
                 </Link>
                 {link.subLink && (
-                  <ul className="flex flex-col py-2 pl-4">
+                  <ul className="flex-col py-3 pl-4">
                     {link.subLink.map((item) => (
-                      <li key={item.id} className="py-1">
-                        <Link href={item.href} onClick={closeMenu} className="text-white text-xs hover:text-primary-6">
+                      <li key={item.id} className="py-2">
+                        <Link href={`/categories/${item.id}`} onClick={closeMenu} className="text-xs hover:text-primary-6">
                           {item.title}
                         </Link>
                       </li>

@@ -1,9 +1,12 @@
-import Link from "next/link";
+"use client";
 import Button from "../UI/Button";
 import Image from "next/image";
 import ScrollTopButton from "../UI/ScrollTopButton";
+import { useRouter } from "next/navigation";
 
 const Guidance = () => {
+  const router = useRouter();
+
   return (
     <div className="mt-12 md:mt-40 py-5 md:py-12 relative gradient-landing2">
       <div className="container flex items-center justify-center flex-col gap-3 md:gap-8">
@@ -16,34 +19,41 @@ const Guidance = () => {
 
         {/* Buttons */}
         <div className="flex items-center gap-6 mb-8">
-          {/* دکمه ارتباط با ما بدون تغییر */}
-          <Button icon={"/assets/icons/Arrow.svg"}>ارتباط با ما</Button>
-
-          {/* دکمه ثبت‌نام اصلاح‌شده */}
-          <Link
-            href="/auth/register"
-            className="flex items-center gap-2 rounded-xl py-3 px-9 md:px-12 md:py-4 text-xs md:text-xl font-medium cursor-pointer transition-all duration-200 group border border-primary-7 text-primary-7 hover:bg-primary-7 hover:text-white"
+          <Button
+            icon={"/assets/icons/Arrow.svg"}
+            onClick={() => router.push("/contact")}
           >
-            <img
-              src="/assets/icons/Arrow.svg"
-              alt="button icon"
-              className="object-contain transition-transform duration-200 group-hover:rotate-45"
-            />
-            <span>ثبت نام</span>
-          </Link>
+            ارتباط با ما
+          </Button>
+
+          <Button
+            icon={"/assets/icons/Arrow.svg"}
+            className="text-primary-7"
+            variant="outline"
+            onClick={() => router.push("/auth/register")}
+          >
+            ثبت نام
+          </Button>
+
+          <Button
+            icon={"/assets/icons/Arrow.svg"}
+            className="text-primary-7"
+            variant="outline"
+            onClick={() => router.push("/auth/login")}
+          >
+            ورود
+          </Button>
         </div>
       </div>
-        <p>TEST GUIDANCE</p>
-
 
       {/* Wing */}
       <div className="absolute w-20 h-20 md:w-28 md:h-28 flex items-center justify-center p-1 md:p-2 bg-white rounded-full -top-1/6 md:-top-1/5 right-1/16">
-        <Image src={"/assets/icons/Wing.svg"} alt="" fill />
+        <Image src={"/assets/icons/Wing.svg"} alt="wings" fill />
       </div>
 
       {/* Arrow */}
       <div className="absolute w-32 h-32 md:w-54 md:h-54 left-0 -bottom-1/5 md:-bottom-1/3">
-        <Image src={"/assets/icons/Arrow2.svg"} fill alt="" />
+        <Image src={"/assets/icons/Arrow2.svg"} fill alt="arrow" />
       </div>
 
       <div className="absolute -bottom-10 md:-bottom-15 left-1/2 -translate-x-1/2">
