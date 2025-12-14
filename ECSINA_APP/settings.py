@@ -67,7 +67,6 @@ INSTALLED_APPS = [
     "support.apps.SupportConfig",
     "comments.apps.CommentsConfig",
     "suggestion.apps.SuggestionConfig",
-    "corsheaders",
     # third party
     "rest_framework",
     "rest_framework.authtoken",
