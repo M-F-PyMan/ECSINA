@@ -6,6 +6,9 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.exceptions import PermissionDenied
 from django.utils.dateparse import parse_date
 from django.utils import timezone
+from datetime import timedelta
+import logging
+from django.core.cache import cache
 from django.contrib.auth import authenticate
 from suggestion.utils.cache_helpers import invalidate_related_educations_cache
 from django.http import FileResponse
@@ -337,38 +340,86 @@ class RegisterView(APIView):
 
 
 
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCK_MINUTES = 15
+
 class LoginView(APIView):
-    @ratelimit(key='ip', rate='5/m', block=True)
+    @ratelimit(key='ip', rate='10/m', block=True)  # rate-limit کلی بر اساس IP
     def post(self, request):
-        username = request.data.get('username')
+        identifier = request.data.get('username')  # ایمیل یا موبایل
         password = request.data.get('password')
 
-        if not username or not password:
+        if not identifier or not password:
             return Response({'detail': 'نام کاربری و رمز عبور الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # تشخیص ایمیل یا موبایل
+        # cache key بر اساس identifier (می‌تواند ایمیل یا موبایل) و IP ترکیب شود
+        ip = request.META.get('REMOTE_ADDR', '')
+        cache_key = f"login_fail:{identifier}:{ip}"
+
+        # بررسی قفل
+        fail_data = cache.get(cache_key) or {'count': 0, 'locked_until': None}
+        locked_until = fail_data.get('locked_until')
+        if locked_until and timezone.now() < locked_until:
+            return Response({'detail': 'حساب موقتاً قفل شده است. بعداً تلاش کنید.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # پیدا کردن کاربر بر اساس ایمیل یا موبایل
         try:
-            if "@" in username:
-                user = User.objects.get(email=username)
+            if "@" in identifier:
+                user = User.objects.get(email=identifier)
             else:
-                user = User.objects.get(mobile=username)
+                user = User.objects.get(mobile=identifier)
         except User.DoesNotExist:
-            return Response({'detail': 'کاربری با این مشخصات یافت نشد'}, status=status.HTTP_404_NOT_FOUND)
+            # افزایش شمارنده تلاش ناموفق (بدون افشای اینکه کاربر وجود ندارد)
+            fail_data['count'] = fail_data.get('count', 0) + 1
+            if fail_data['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail_data['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail_data, timeout=LOGIN_LOCK_MINUTES * 60)
+            logger.warning("Failed login attempt for identifier (not found) from %s", ip)
+            return Response({'detail': 'نام کاربری یا رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # بررسی رمز
         if not user.check_password(password):
-            return Response({'detail': 'رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
+            fail_data['count'] = fail_data.get('count', 0) + 1
+            if fail_data['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail_data['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail_data, timeout=LOGIN_LOCK_MINUTES * 60)
+            logger.warning("Failed login attempt for user id=%s from %s", getattr(user, 'id', 'unknown'), ip)
+            return Response({'detail': 'نام کاربری یا رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
 
+        # بررسی فعال بودن حساب
         if not user.is_active:
             return Response({'detail': 'حساب کاربری غیرفعال است'}, status=status.HTTP_403_FORBIDDEN)
 
+        # موفقیت: پاکسازی شمارنده تلاش‌ها
+        cache.delete(cache_key)
+
+        # تولید توکن‌ها (SimpleJWT RefreshToken)
         refresh = RefreshToken.for_user(user)
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        # قرار دادن refresh در HttpOnly cookie امن
+        response = Response({
+            'access': access_token,
             'user_id': user.id,
             'email': user.email,
             'mobile': user.mobile,
         }, status=status.HTTP_200_OK)
+
+        # تنظیمات cookie: Secure و HttpOnly و SameSite
+        cookie_max_age = 60 * 60 * 24 * 7  # مثال: 7 روز برای refresh
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            max_age=cookie_max_age,
+            httponly=True,
+            secure=not settings.DEBUG,  # در prod حتما True
+            samesite='Lax',  # یا 'Strict' بسته به نیاز
+            path='/api/'  # مسیر کوکی را محدود کن
+        )
+
+        logger.info("User logged in: id=%s from %s", user.id, ip)
+        return response
 
 
 class SendOTPView(APIView):

@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 from corsheaders.defaults import default_headers
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -22,70 +23,79 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-)ouzyyjwvacnu*!$%pd=1&*xnsx$m1(2=kio3q#4+w)7-q^^0a'
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "django-insecure-)ouzyyjwvacnu*!$%pd=1&*xnsx$m1(2=kio3q#4+w)7-q^^0a")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get("DJANGO_DEBUG", "True").lower() in ("1", "true", "yes")
 
-ALLOWED_HOSTS = [
-    "127.0.0.1",
-    "localhost",
-    "10.1.19.2",
-    "192.168.56.1",
-    '10.1.19.2',
-]
+ALLOWED_HOSTS = os.environ.get(
+    "DJANGO_ALLOWED_HOSTS",
+    "127.0.0.1,localhost,10.1.19.2,192.168.56.1"
+).split(",")
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://127.0.0.1:8000',
-    'http://localhost:8000',
-    'http://192.168.56.100:8000',
-    'http://10.1.19.2:8000',
-
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://192.168.56.100:8000",
+    "http://10.1.19.2:8000",
+    # اگر فرانت روی پورت 3000 است:
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://10.1.19.2:3000",
 ]
 
-AUTH_USER_MODEL = 'Accounts.User'
+AUTH_USER_MODEL = "Accounts.User"
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
-    #our_APP
-    'Accounts.apps.AccountsConfig',
-    'Products.apps.ProductsConfig',
-    'home.apps.HomeConfig',
-    'system_settings.apps.SystemSettingsConfig',
-    'permissions.apps.PermissionsConfig',
-    'jobs.apps.JobConfig',
-    'faq.apps.FaqConfig',
-    'support.apps.SupportConfig',
-    'comments.apps.CommentsConfig',
-    'suggestion.apps.SuggestionConfig',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'corsheaders',
-
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    # our apps
+    "Accounts.apps.AccountsConfig",
+    "Products.apps.ProductsConfig",
+    "home.apps.HomeConfig",
+    "system_settings.apps.SystemSettingsConfig",
+    "permissions.apps.PermissionsConfig",
+    "jobs.apps.JobConfig",
+    "faq.apps.FaqConfig",
+    "support.apps.SupportConfig",
+    "comments.apps.CommentsConfig",
+    "suggestion.apps.SuggestionConfig",
+    # third party
+    "rest_framework",
+    "rest_framework.authtoken",
+    "corsheaders",
+    # Simple JWT blacklist support (optional, recommended if you want to revoke refresh tokens)
+    "rest_framework_simplejwt.token_blacklist",
 ]
 
-
-FARAZ_SMS_API_KEY ="OWYxZDk0ODctNzEzMy00N2IzLTg4ZDEtODQ2ZTIyZjYzMzgzMTkyZWYxMDQzYTgwNGMwNmZlYzQ0MmQ3Y2IyNGM0ZGM="
+# Faraz SMS key (move to env in production)
+FARAZ_SMS_API_KEY = os.environ.get(
+    "FARAZ_SMS_API_KEY",
+    "OWYxZDk0ODctNzEzMy00N2IzLTg4ZDEtODQ2ZTIyZjYzMzgzMTkyZWYxMDQzYTgwNGMwNmZlYzQ0MmQ3Y2IyNGM0ZGM="
+)
 
 
 REST_FRAMEWORK = {
-    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.NamespaceVersioning',
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    "DEFAULT_VERSIONING_CLASS": "rest_framework.versioning.NamespaceVersioning",
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
     ],
+    # Optional: global permission defaults can be set here
+    # 'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
 }
+
+# CORS: اجازهٔ origin های فرانت و ارسال کوکی
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    'http://10.1.19.2:3000',
+    "http://10.1.19.2:3000",
     "http://192.168.56.1:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
@@ -98,59 +108,75 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-csrftoken",
     "x-requested-with",
 ]
-
 CORS_EXPOSE_HEADERS = [
     "Authorization",
     "Content-Type",
 ]
 
-
+# SIMPLE_JWT: عمرها و گزینه‌های امنیتی
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.environ.get("ACCESS_TOKEN_MINUTES", 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.environ.get("REFRESH_TOKEN_DAYS", 7))),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    # اگر می‌خواهی ریفِرش‌ها را rotate و blacklist کنی، این گزینه‌ها را فعال کن:
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+}
+
+# Cache: برای lockout و rate-limit بهتر است از Redis استفاده شود؛ fallback به locmem برای dev
+CACHES = {
+    "default": {
+        "BACKEND": os.environ.get("DJANGO_CACHE_BACKEND", "django.core.cache.backends.locmem.LocMemCache"),
+        # اگر از Redis استفاده می‌کنی، مقدار زیر را در env قرار بده:
+        # DJANGO_CACHE_BACKEND = 'django_redis.cache.RedisCache'
+        # DJANGO_CACHE_LOCATION = 'redis://127.0.0.1:6379/1'
+        "LOCATION": os.environ.get("DJANGO_CACHE_LOCATION", ""),
+    }
 }
 
 MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'middleware.security_headers.security_headers',
-
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "middleware.security_headers.security_headers",
 ]
-ROOT_URLCONF = 'ECSINA_APP.urls'
+
+ROOT_URLCONF = "ECSINA_APP.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates']
-        ,
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'ECSINA_APP.wsgi.application'
+WSGI_APPLICATION = "ECSINA_APP.wsgi.application"
 
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
+# برای production از PostgreSQL یا MySQL استفاده کن؛ sqlite فقط برای توسعه مناسب است.
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+    "default": {
+        "ENGINE": os.environ.get("DB_ENGINE", "django.db.backends.sqlite3"),
+        "NAME": os.environ.get("DB_NAME", BASE_DIR / "db.sqlite3"),
+        "USER": os.environ.get("DB_USER", ""),
+        "PASSWORD": os.environ.get("DB_PASSWORD", ""),
+        "HOST": os.environ.get("DB_HOST", ""),
+        "PORT": os.environ.get("DB_PORT", ""),
     }
 }
 
@@ -159,46 +185,69 @@ DATABASES = {
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
-    {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
-    },
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'Asia/Tehran'
+TIME_ZONE = "Asia/Tehran"
 
 USE_I18N = True
 
 USE_TZ = True
 
-HASHID_FIELD_SALT = ')h0p!5&33xmgqas+#w^!xhl4bm#(^qq2$oc5+!6x@0g2y-fyq*'
+HASHID_FIELD_SALT = os.environ.get("HASHID_FIELD_SALT", ")h0p!5&33xmgqas+#w^!xhl4bm#(^qq2$oc5+!6x@0g2y-fyq*")
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']  # برای فایل‌های توسعه
-STATIC_ROOT = BASE_DIR / 'staticfiles'   # برای collectstatic در حالت production
+STATIC_URL = "/static/"
+STATICFILES_DIRS = [BASE_DIR / "static"]  # برای فایل‌های توسعه
+STATIC_ROOT = BASE_DIR / "staticfiles"  # برای collectstatic در حالت production
 
+
+# Security-related cookie settings
+# در محیط production حتماً DEBUG=False و SECURE_* را فعال کن
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # CSRF cookie باید در جاوااسکریپت خوانده شود در صورت نیاز؛ معمولاً False است
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+# اگر می‌خواهی همهٔ ترافیک را به HTTPS هدایت کنی:
+SECURE_SSL_REDIRECT = not DEBUG
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+
+# Logging: لاگ‌های امنیتی و خطاها را ثبت کن
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {"format": "[{levelname}] {asctime} {name} {message}", "style": "{"},
+        "simple": {"format": "[{levelname}] {message}", "style": "{"},
+    },
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+        # در production می‌توانی فایل لاگ یا external logging اضافه کنی
+    },
+    "root": {"handlers": ["console"], "level": os.environ.get("DJANGO_LOG_LEVEL", "INFO")},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "ERROR", "propagate": False},
+        "accounts": {"handlers": ["console"], "level": "INFO", "propagate": True},
+    },
+}
