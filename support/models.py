@@ -58,3 +58,11 @@ class AboutFeature(models.Model):
 
     def __str__(self):
         return self.title
+
+class TicketAttachment(models.Model):
+    ticket = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name='attachments')
+    file = models.FileField(upload_to='ticket_attachments/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return

@@ -1,88 +1,106 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useKeenSlider } from "keen-slider/react";
 import "keen-slider/keen-slider.min.css";
 import Document from "./Document";
 
-const DocumentSlider = () => {
+const API_ENDPOINT = "/api/user-proposal-uploads/?ordering=-uploaded_at";
+
+function getAuthHeaders() {
+  if (typeof window === "undefined") return {};
+  const token = localStorage.getItem("access_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+function mapItem(d) {
+  const fileSize =
+    d.file_size ??
+    (d.file && (d.file.size || d.file.size === 0)
+      ? `${Math.round((d.file.size || 0) / 1024)} KB`
+      : "-");
+  return {
+    id: d.id,
+    title: d.title || d.file?.name || "بدون عنوان",
+    fileSize,
+    date: d.uploaded_at || d.created_at || null,
+    statusText: d.status_display || d.status || "",
+    statusDate: d.reviewed_at || d.uploaded_at || null,
+    statusType: d.status || "pending",
+    difficulty: d.difficulty || "متوسط",
+    icon: d.icon || "/assets/icons/brain.svg",
+  };
+}
+
+function DocumentSlider() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // useKeenSlider: return ref and instanceRef so we can update when items change
   const [sliderRef, instanceRef] = useKeenSlider({
     breakpoints: {
-      "(min-width: 400px)": {
-        slides: { perView: 2, spacing: 5 },
-      },
-      "(min-width: 1000px)": {
-        slides: { perView: 4, spacing: 10 },
-      },
+      "(min-width: 400px)": { slides: { perView: 2, spacing: 5 } },
+      "(min-width: 1000px)": { slides: { perView: 4, spacing: 10 } },
     },
     slides: { perView: 1, spacing: 5 },
     loop: true,
   });
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchItems = async () => {
+  const fetchItems = useCallback(
+    async (signal) => {
       setLoading(true);
       setError(null);
       try {
-        const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
-        const res = await fetch("/api/user-proposal-uploads/?ordering=-uploaded_at", {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const headers = getAuthHeaders();
+        const res = await fetch(API_ENDPOINT, { headers, signal });
         if (!res.ok) throw new Error(`خطا در دریافت داده: ${res.status}`);
-        const data = await res.json();
-
-        // نگاشت فیلدها و تبدیل تاریخ‌ها به Date
-        const mapped = data.map((d) => ({
-          id: d.id,
-          title: d.title || d.file?.name || "بدون عنوان",
-          fileSize: d.file_size || (d.file ? `${Math.round((d.file.size || 0) / 1024)} KB` : "-"),
-          date: d.uploaded_at ? new Date(d.uploaded_at) : new Date(),
-          statusText: d.status_display || d.status || "",
-          statusDate: d.reviewed_at ? new Date(d.reviewed_at) : d.uploaded_at ? new Date(d.uploaded_at) : new Date(),
-          statusType: d.status || "pending",
-          difficulty: d.difficulty || "متوسط",
-          icon: d.icon || "/assets/icons/brain.svg",
-          // هر فیلد اضافی که Document نیاز داره
-        }));
-
-        if (mounted) {
-          setItems(mapped);
-          setLoading(false);
-          // وقتی داده‌ها تغییر می‌کنن، slider رو آپدیت کن
-          setTimeout(() => instanceRef.current?.update?.(), 50);
-        }
+        const json = await res.json();
+        const raw = Array.isArray(json) ? json : json.results ?? [];
+        const mapped = raw.map(mapItem);
+        setItems(mapped);
+        if (instanceRef.current) instanceRef.current.update?.();
+        setLoading(false);
       } catch (err) {
-        if (mounted) {
-          setError(err.message || "خطای نامشخص");
-          setLoading(false);
-        }
+        if (err.name === "AbortError") return;
+        setError(err.message || "خطای نامشخص");
+        setLoading(false);
       }
-    };
+    },
+    [instanceRef]
+  );
 
-    fetchItems();
-    return () => {
-      mounted = false;
-    };
-  }, [instanceRef]);
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchItems(controller.signal);
+    return () => controller.abort();
+  }, [fetchItems]);
 
   if (loading) {
-    return <div className="py-4 text-center">در حال بارگذاری...</div>;
+    return (
+      <div className="py-4 text-center" role="status" aria-live="polite">
+        در حال بارگذاری...
+      </div>
+    );
   }
+
   if (error) {
-    return <div className="py-4 text-center text-red-600">خطا: {error}</div>;
+    return (
+      <div className="py-4 text-center text-red-600" role="alert">
+        خطا: {error}
+      </div>
+    );
   }
+
   if (!items.length) {
-    return <div className="py-4 text-center">موردی برای نمایش وجود ندارد.</div>;
+    return (
+      <div className="py-4 text-center" role="status">
+        موردی برای نمایش وجود ندارد.
+      </div>
+    );
   }
 
   return (
-    <div ref={sliderRef} className="keen-slider py-[10px]">
+    <div ref={sliderRef} className="keen-slider py-[10px]" aria-roledescription="carousel">
       {items.map((c) => (
         <div key={c.id} className="keen-slider__slide">
           <Document {...c} />
@@ -90,6 +108,6 @@ const DocumentSlider = () => {
       ))}
     </div>
   );
-};
+}
 
 export default DocumentSlider;
