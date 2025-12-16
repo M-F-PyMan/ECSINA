@@ -54,7 +54,19 @@ from .serializers import (
 )
 from django_ratelimit.decorators import ratelimit
 from permissions.permissions import IsAdminOrOwner
+import logging
 
+logger = logging.getLogger(__name__)
+
+# ========= Existing viewsets kept as-is (snipped for brevity); ensure they remain in the file =========
+# UserActivityLogViewSet, UserViewSet, ProfileViewSet, TempUserViewSet, DeleteUserView,
+# UserProposalUploadViewSet, ConsultantReplyViewSet, UserCategoryViewSet, UserCategoryItemViewSet
+# RegisterView, SendOTPView, VerifyOTPView, ResetPasswordView
+# ================================================================================================
+
+# --- Security parameters for login lockout ---
+LOGIN_MAX_ATTEMPTS = getattr(settings, "LOGIN_MAX_ATTEMPTS", 5)
+LOGIN_LOCK_MINUTES = getattr(settings, "LOGIN_LOCK_MINUTES", 15)
 
 class UserActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = UserActivityLog.objects.select_related('user', 'file').order_by('-timestamp')
@@ -339,60 +351,6 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-LOGIN_MAX_ATTEMPTS = 5
-LOGIN_LOCK_MINUTES = 15
-
-class LoginView(APIView):
-    @ratelimit(key='ip', rate='10/m', block=True)
-    def post(self, request):
-        identifier = request.data.get('username')
-        password = request.data.get('password')
-        if not identifier or not password:
-            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=400)
-
-        ip = request.META.get('REMOTE_ADDR', '')
-        cache_key = f"login_fail:{identifier}:{ip}"
-        fail = cache.get(cache_key) or {'count': 0, 'locked_until': None}
-        if fail['locked_until'] and timezone.now() < fail['locked_until']:
-            return Response({'detail': 'حساب موقتاً قفل شده است. بعداً تلاش کنید.'}, status=429)
-
-        try:
-            user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
-        except User.DoesNotExist:
-            fail['count'] += 1
-            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
-                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
-            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
-            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=401)
-
-        if not user.check_password(password) or not user.is_active:
-            fail['count'] += 1
-            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
-                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
-            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
-            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=401)
-
-        cache.delete(cache_key)
-        refresh = RefreshToken.for_user(user)
-        # Set refresh in HttpOnly cookie; return access in body
-        resp = Response({
-            'access': str(refresh.access_token),
-            'user_id': user.id,
-            'email': user.email,
-            'mobile': user.mobile,
-        }, status=200)
-        resp.set_cookie(
-            'refresh_token',
-            str(refresh),
-            max_age=7*24*60*60,
-            httponly=True,
-            secure=True,         # True in production
-            samesite='Lax',
-            path='/api/'
-        )
-        return resp
-
-
 class SendOTPView(APIView):
     def post(self, request):
         serializer = SendOTPSerializer(data=request.data)
@@ -443,21 +401,92 @@ class ResetPasswordView(APIView):
 
 
 
+
+
+class LoginView(APIView):
+    @ratelimit(key='ip', rate='10/m', block=True)
+    def post(self, request):
+        identifier = request.data.get('username')  # email or mobile
+        password = request.data.get('password')
+
+        if not identifier or not password:
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=status.HTTP_400_BAD_REQUEST)
+
+        ip = request.META.get('REMOTE_ADDR', '')
+        cache_key = f"login_fail:{identifier}:{ip}"
+        fail = cache.get(cache_key) or {'count': 0, 'locked_until': None}
+
+        # Check lock
+        if fail['locked_until'] and timezone.now() < fail['locked_until']:
+            return Response({'detail': 'حساب موقتاً قفل شده است. بعداً تلاش کنید.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        # Find user (email or mobile)
+        try:
+            user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
+        except User.DoesNotExist:
+            # Increment fail count and maybe lock
+            fail['count'] += 1
+            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
+            logger.warning("Failed login: identifier not found. ip=%s", ip)
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Check password and active status
+        if not user.check_password(password) or not user.is_active:
+            fail['count'] += 1
+            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
+            logger.warning("Failed login: bad password or inactive. user_id=%s ip=%s", user.id, ip)
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Success: clear fail counter
+        cache.delete(cache_key)
+
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+
+        # Set HttpOnly, Secure cookie for refresh
+        resp = Response({
+            'access': access_token,
+            'user_id': user.id,
+            'email': user.email,
+            'mobile': user.mobile,
+        }, status=status.HTTP_200_OK)
+
+        cookie_max_age = 60 * 60 * 24 * 7  # 7 days
+        resp.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            max_age=cookie_max_age,
+            httponly=True,
+            secure=not settings.DEBUG,
+            samesite='Lax',
+            path='/api/'
+        )
+
+        logger.info("User logged in. user_id=%s ip=%s", user.id, ip)
+        return resp
+
+
 class RefreshTokenView(APIView):
     def post(self, request):
-        rt = request.COOKIES.get('refresh_token')
-        if not rt:
-            return Response({'detail': 'Refresh token missing'}, status=401)
+        refresh_token = request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token missing'}, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            token = RefreshToken(rt)
-            return Response({'access': str(token.access_token)}, status=200)
+            token = RefreshToken(refresh_token)
+            access = str(token.access_token)
+            return Response({'access': access}, status=status.HTTP_200_OK)
         except Exception:
-            return Response({'detail': 'Invalid refresh token'}, status=401)
-
+            return Response({'detail': 'Invalid refresh token'}, status=status.HTTP_401_UNAUTHORIZED)
 
 
 class LogoutView(APIView):
     def post(self, request):
-        resp = Response({'detail': 'logged out'}, status=200)
+        resp = Response({'detail': 'logged out'}, status=status.HTTP_200_OK)
+        # Match cookie path used in set_cookie
         resp.delete_cookie('refresh_token', path='/api/')
         return resp
