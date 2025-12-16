@@ -339,87 +339,58 @@ class RegisterView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_LOCK_MINUTES = 15
 
 class LoginView(APIView):
-    @ratelimit(key='ip', rate='10/m', block=True)  # rate-limit کلی بر اساس IP
+    @ratelimit(key='ip', rate='10/m', block=True)
     def post(self, request):
-        identifier = request.data.get('username')  # ایمیل یا موبایل
+        identifier = request.data.get('username')
         password = request.data.get('password')
-
         if not identifier or not password:
-            return Response({'detail': 'نام کاربری و رمز عبور الزامی است'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=400)
 
-        # cache key بر اساس identifier (می‌تواند ایمیل یا موبایل) و IP ترکیب شود
         ip = request.META.get('REMOTE_ADDR', '')
         cache_key = f"login_fail:{identifier}:{ip}"
+        fail = cache.get(cache_key) or {'count': 0, 'locked_until': None}
+        if fail['locked_until'] and timezone.now() < fail['locked_until']:
+            return Response({'detail': 'حساب موقتاً قفل شده است. بعداً تلاش کنید.'}, status=429)
 
-        # بررسی قفل
-        fail_data = cache.get(cache_key) or {'count': 0, 'locked_until': None}
-        locked_until = fail_data.get('locked_until')
-        if locked_until and timezone.now() < locked_until:
-            return Response({'detail': 'حساب موقتاً قفل شده است. بعداً تلاش کنید.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
-
-        # پیدا کردن کاربر بر اساس ایمیل یا موبایل
         try:
-            if "@" in identifier:
-                user = User.objects.get(email=identifier)
-            else:
-                user = User.objects.get(mobile=identifier)
+            user = User.objects.get(email=identifier) if "@" in identifier else User.objects.get(mobile=identifier)
         except User.DoesNotExist:
-            # افزایش شمارنده تلاش ناموفق (بدون افشای اینکه کاربر وجود ندارد)
-            fail_data['count'] = fail_data.get('count', 0) + 1
-            if fail_data['count'] >= LOGIN_MAX_ATTEMPTS:
-                fail_data['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
-            cache.set(cache_key, fail_data, timeout=LOGIN_LOCK_MINUTES * 60)
-            logger.warning("Failed login attempt for identifier (not found) from %s", ip)
-            return Response({'detail': 'نام کاربری یا رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
+            fail['count'] += 1
+            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=401)
 
-        # بررسی رمز
-        if not user.check_password(password):
-            fail_data['count'] = fail_data.get('count', 0) + 1
-            if fail_data['count'] >= LOGIN_MAX_ATTEMPTS:
-                fail_data['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
-            cache.set(cache_key, fail_data, timeout=LOGIN_LOCK_MINUTES * 60)
-            logger.warning("Failed login attempt for user id=%s from %s", getattr(user, 'id', 'unknown'), ip)
-            return Response({'detail': 'نام کاربری یا رمز عبور اشتباه است'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not user.check_password(password) or not user.is_active:
+            fail['count'] += 1
+            if fail['count'] >= LOGIN_MAX_ATTEMPTS:
+                fail['locked_until'] = timezone.now() + timedelta(minutes=LOGIN_LOCK_MINUTES)
+            cache.set(cache_key, fail, timeout=LOGIN_LOCK_MINUTES * 60)
+            return Response({'detail': 'نام کاربری یا رمز عبور نامعتبر است'}, status=401)
 
-        # بررسی فعال بودن حساب
-        if not user.is_active:
-            return Response({'detail': 'حساب کاربری غیرفعال است'}, status=status.HTTP_403_FORBIDDEN)
-
-        # موفقیت: پاکسازی شمارنده تلاش‌ها
         cache.delete(cache_key)
-
-        # تولید توکن‌ها (SimpleJWT RefreshToken)
         refresh = RefreshToken.for_user(user)
-        access_token = str(refresh.access_token)
-        refresh_token = str(refresh)
-
-        # قرار دادن refresh در HttpOnly cookie امن
-        response = Response({
-            'access': access_token,
+        # Set refresh in HttpOnly cookie; return access in body
+        resp = Response({
+            'access': str(refresh.access_token),
             'user_id': user.id,
             'email': user.email,
             'mobile': user.mobile,
-        }, status=status.HTTP_200_OK)
-
-        # تنظیمات cookie: Secure و HttpOnly و SameSite
-        cookie_max_age = 60 * 60 * 24 * 7  # مثال: 7 روز برای refresh
-        response.set_cookie(
-            key='refresh_token',
-            value=refresh_token,
-            max_age=cookie_max_age,
+        }, status=200)
+        resp.set_cookie(
+            'refresh_token',
+            str(refresh),
+            max_age=7*24*60*60,
             httponly=True,
-            secure=not settings.DEBUG,  # در prod حتما True
-            samesite='Lax',  # یا 'Strict' بسته به نیاز
-            path='/api/'  # مسیر کوکی را محدود کن
+            secure=True,         # True in production
+            samesite='Lax',
+            path='/api/'
         )
-
-        logger.info("User logged in: id=%s from %s", user.id, ip)
-        return response
+        return resp
 
 
 class SendOTPView(APIView):
@@ -469,3 +440,24 @@ class ResetPasswordView(APIView):
         user.save()
 
         return Response({"detail": "رمز عبور با موفقیت تغییر کرد."}, status=status.HTTP_200_OK)
+
+
+
+class RefreshTokenView(APIView):
+    def post(self, request):
+        rt = request.COOKIES.get('refresh_token')
+        if not rt:
+            return Response({'detail': 'Refresh token missing'}, status=401)
+        try:
+            token = RefreshToken(rt)
+            return Response({'access': str(token.access_token)}, status=200)
+        except Exception:
+            return Response({'detail': 'Invalid refresh token'}, status=401)
+
+
+
+class LogoutView(APIView):
+    def post(self, request):
+        resp = Response({'detail': 'logged out'}, status=200)
+        resp.delete_cookie('refresh_token', path='/api/')
+        return resp
