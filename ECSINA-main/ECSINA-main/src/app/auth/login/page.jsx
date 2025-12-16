@@ -11,7 +11,6 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // پایهٔ آدرس API: از env استفاده کن یا مقدار پیش‌فرض لوکال
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
   const handleLogin = async () => {
@@ -19,45 +18,34 @@ function LoginPage() {
     setError("");
 
     try {
-      // اگر مقدار username شامل @ بود فرض می‌کنیم ایمیل است، در غیر این صورت آن را به عنوان email هم می‌فرستیم
-      const payload = {
-        email: username,
-        password,
-      };
-
-      const res = await fetch(`${API_BASE}/api/token/`, {
+      const res = await fetch(`${API_BASE}/api/v1/accounts/auth/login/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        credentials: "include", // مهم: برای دریافت کوکی refresh
+        body: JSON.stringify({ username, password }),
       });
 
-      // یک‌بار پاسخ را پارس کن
       const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        // اگر خطای مشخصی از سرور آمده آن را نمایش بده، در غیر این صورت پیام عمومی
         const msg =
-          (body && (body.detail || body.non_field_errors || body.error)) ||
-          // اگر سرور فیلدهای خطا را به شکل { email: [...], password: [...] } فرستاده باشد
+          body?.detail ||
+          body?.non_field_errors ||
+          body?.error ||
           (body && typeof body === "object"
-            ? Object.values(body)
-                .flat()
-                .filter(Boolean)
-                .join(" | ")
+            ? Object.values(body).flat().filter(Boolean).join(" | ")
             : null) ||
           "خطا در ورود";
         throw new Error(msg);
       }
 
-      // انتظار داریم body شامل access و refresh باشد
-      if (!body || !body.access) {
-        throw new Error("توکن دریافت نشد. لطفاً دوباره تلاش کنید.");
+      if (!body?.access) {
+        throw new Error("توکن دسترسی دریافت نشد. لطفاً دوباره تلاش کنید.");
       }
 
+      // فقط access در body است؛ refresh در کوکی HttpOnly ذخیره می‌شود
       localStorage.setItem("access", body.access);
-      if (body.refresh) localStorage.setItem("refresh", body.refresh);
 
-      // ریدایرکت به صفحهٔ اصلی
       window.location.href = "/";
     } catch (err) {
       console.error("Login error:", err);
